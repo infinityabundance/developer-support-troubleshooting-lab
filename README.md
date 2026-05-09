@@ -62,75 +62,10 @@ pytest -q
 
 ### Windows 11 VM
 
-For a Windows 11 VM, enable nested virtualization in the VM settings first. The
-repo's scripts are bash/Makefile-based, so use Ubuntu on WSL2 as the Linux
-shell for `git`, `make`, Python, and the repo scripts. Docker Desktop runs on
-Windows and provides the Docker engine. Do not install Docker Engine, `docker.io`,
-Snap Docker, Podman, or another container runtime inside Ubuntu for this path.
-
-Run this in an Administrator PowerShell:
-
-```powershell
-wsl --install --no-distribution
-winget install -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
-shutdown /r /t 0
-```
-
-After the reboot, open PowerShell again:
-
-```powershell
-wsl --install -d Ubuntu-24.04
-wsl --update
-Start-Process "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
-```
-
-Let Ubuntu create its Linux user and let Docker Desktop finish starting. In
-Docker Desktop, open **Settings -> Resources -> WSL Integration**, enable
-integration for `Ubuntu-24.04`, and apply/restart. That integration is what
-makes the `docker` command inside Ubuntu talk to Docker Desktop's Windows engine.
-
-Then install only the repo tooling inside Ubuntu:
-
-```bash
-sudo apt update
-sudo apt install -y git make curl ca-certificates python3 python3.12-venv python3-venv python3-pip openssl
-```
-
-Verify that Ubuntu can reach Docker Desktop through WSL integration:
-
-```bash
-docker version
-docker compose version
-docker run --rm hello-world
-```
-
-If `docker` is not found, fix Docker Desktop's WSL integration for the Ubuntu
-distro. Do not install Docker inside Ubuntu.
-
-Clone and run the lab from GitHub inside the Linux home directory, not under
-`/mnt/c`:
-
-```bash
-cd ~
-git clone https://github.com/infinityabundance/developer-support-troubleshooting-lab.git
-cd developer-support-troubleshooting-lab
-
-rm -rf .venv   # safe recovery if a previous venv creation failed
-python3 -m venv .venv
-source .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -r tests/requirements.txt
-
-make down || true
-make up && make reproduce-all && python3 -m pytest -q
-```
-
-If the run fails, capture the Compose state before changing anything:
-
-```bash
-docker compose ps
-docker compose logs --tail=200
-```
+See [docs/windows-11-vm.md](docs/windows-11-vm.md) for the Windows 11 VM setup.
+Short version: Docker Desktop runs on Windows, Ubuntu on WSL2 is only the Linux
+shell for repo tooling, and Docker must be reached through Docker Desktop's WSL
+integration. Do not install Docker Engine inside Ubuntu for this path.
 
 CI runs the full suite (reproductions + pinning tests) on Python 3.11 / 3.12 / 3.13 with one automatic retry for timing-sensitive cases, plus a nightly schedule trigger to catch upstream image drift.
 
@@ -146,7 +81,8 @@ cases/NN-slug/        per-case folder: README.md, reproduce.sh, logs.txt
 db/migrations/        001_init.sql (auto-applied; seeds schema_migrations v1),
                       002_partial.sql (case 02's "missing migration")
 docs/                 support-casebook.md (single-document casebook),
-                      support-casebook.typ (typst source), support-casebook.pdf
+                      support-casebook.typ (typst source), support-casebook.pdf,
+                      windows-11-vm.md (Windows VM setup)
 seed/                 reset.sh — idempotent baseline reset between cases
 tests/                test_reproductions.py (runs every reproduce.sh and diffs
                       stdout against expected-output.txt) plus per-case pinning
