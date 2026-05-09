@@ -18,7 +18,7 @@ def md(*lines: str) -> dict:
     return {
         "cell_type": "markdown",
         "metadata": {},
-        "source": [l + ("\n" if not l.endswith("\n") else "") for l in lines][:-1] +
+        "source": [line + ("\n" if not line.endswith("\n") else "") for line in lines][:-1] +
                   [lines[-1]],  # last line has no trailing newline
     }
 
@@ -30,7 +30,7 @@ def code(*lines: str) -> dict:
         "execution_count": None,
         "metadata": {},
         "outputs": [],
-        "source": [l + ("\n" if not l.endswith("\n") else "") for l in lines][:-1] +
+        "source": [line + ("\n" if not line.endswith("\n") else "") for line in lines][:-1] +
                   [lines[-1]],
     }
 
@@ -61,13 +61,32 @@ CELLS = [
     # 2. Setup: clone repo
     # ============================================================
     md(
-        "## Setup 1 of 4 — Clone the repo",
+        "## Setup 1 of 4 — Clone or refresh the repo",
         "",
-        "Pulls the repo into the Colab VM and changes into it. Subsequent cells assume the repo root as the working directory.",
+        "Pulls the repo into the Colab VM and changes into it. If the directory already exists from an earlier run, this refreshes the throwaway Colab checkout to current `origin/main` so rerunning cells cannot keep using stale test code.",
     ),
     code(
-        "!git clone --depth 1 https://github.com/infinityabundance/developer-support-troubleshooting-lab.git",
-        "%cd developer-support-troubleshooting-lab",
+        "import os",
+        "import subprocess",
+        "from pathlib import Path",
+        "",
+        "repo_url = 'https://github.com/infinityabundance/developer-support-troubleshooting-lab.git'",
+        "repo_dir = Path('developer-support-troubleshooting-lab')",
+        "base_dir = Path('/content') if Path('/content').exists() else Path.cwd()",
+        "os.chdir(base_dir)",
+        "",
+        "if (repo_dir / '.git').exists():",
+        "    subprocess.run(['git', '-C', str(repo_dir), 'fetch', '--depth', '1',",
+        "                    'origin', 'main:refs/remotes/origin/main'], check=True)",
+        "    subprocess.run(['git', '-C', str(repo_dir), 'checkout', '-B', 'main',",
+        "                    'origin/main'], check=True)",
+        "else:",
+        "    subprocess.run(['git', 'clone', '--depth', '1', '--branch', 'main',",
+        "                    repo_url, str(repo_dir)], check=True)",
+        "",
+        "os.chdir(repo_dir)",
+        "head = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], text=True).strip()",
+        "print(f'using repo checkout {head}')",
     ),
 
     # ============================================================

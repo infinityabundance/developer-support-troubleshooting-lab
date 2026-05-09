@@ -160,10 +160,11 @@ db_lines="$($COMPOSE logs $LOGFLAGS db 2>/dev/null \
 # from api or db). `[api] ` and `[db]  ` (with extra space on `db`) keep
 # the column widths aligned for visual scanning.
 #
-# `sort -k2,2` orders by the SECOND whitespace-separated field, which is
-# the timestamp after the [api]/[db] prefix. Stable sort keeps lines
-# with identical timestamps in their original order, which matters for
-# multi-line db log entries.
+# `sort -b -k2,2` orders by the SECOND whitespace-separated field,
+# which is the timestamp after the [api]/[db] prefix. `-b` ignores the
+# extra alignment blank in `[db]  `; without it, GNU sort treats that
+# blank as part of the key and can place db lines before earlier api
+# lines.
 {
     echo "$api_lines" | sed 's/^/[api] /'
     # `if/then` rather than `&&` because the script runs under `set -e`:
@@ -174,4 +175,4 @@ db_lines="$($COMPOSE logs $LOGFLAGS db 2>/dev/null \
     if [[ -n "$db_lines" ]]; then
         echo "$db_lines" | sed 's/^/[db]  /'
     fi
-} | sort -k2,2
+} | sort -b -k2,2
