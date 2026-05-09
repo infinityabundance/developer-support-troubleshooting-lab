@@ -121,12 +121,55 @@ Clone inside the Linux home directory, not under `/mnt/c`:
 cd ~
 git clone https://github.com/infinityabundance/developer-support-troubleshooting-lab.git
 cd developer-support-troubleshooting-lab
+```
 
+If the destination directory already exists, do not clone over it. If it is a
+valid checkout, update it:
+
+```bash
+cd ~/developer-support-troubleshooting-lab
+git pull --ff-only
+```
+
+If it is an incomplete directory and `git pull` reports `not a git repository`,
+remove it from `~` and clone again:
+
+```bash
+cd ~
+rm -rf developer-support-troubleshooting-lab
+git clone https://github.com/infinityabundance/developer-support-troubleshooting-lab.git
+cd developer-support-troubleshooting-lab
+```
+
+Create the Python environment and install test dependencies:
+
+```bash
 rm -rf .venv   # safe recovery if a previous venv creation failed
 python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install -r tests/requirements.txt
+```
+
+Run Docker and Make commands as the normal Ubuntu user, not with `sudo`. If
+Docker reports permission denied for `/var/run/docker.sock`, add the Ubuntu user
+to the `docker` group and restart WSL:
+
+```bash
+sudo groupadd -f docker
+sudo usermod -aG docker "$USER"
+```
+
+Then run this from Windows PowerShell and reopen Ubuntu:
+
+```powershell
+wsl --shutdown
+```
+
+Confirm that `groups` includes `docker`, then run the lab:
+
+```bash
+groups
 
 make down || true
 make up && make reproduce-all && python3 -m pytest -q
@@ -168,4 +211,51 @@ PowerShell, and reopen Ubuntu:
 
 ```powershell
 wsl --shutdown
+```
+
+`permission denied while trying to connect to the Docker API at unix:///var/run/docker.sock`
+
+Do not run `sudo make`. Running only part of the sequence with `sudo` can make
+`make up` work and then make `make reproduce-all` fail as the normal user. Fix
+the Ubuntu user's Docker socket access instead:
+
+```bash
+sudo groupadd -f docker
+sudo usermod -aG docker "$USER"
+```
+
+Then run this from Windows PowerShell and reopen Ubuntu:
+
+```powershell
+wsl --shutdown
+```
+
+Verify and rerun without `sudo`:
+
+```bash
+groups
+docker version
+docker compose ps
+
+cd ~/developer-support-troubleshooting-lab
+make down || true
+make up && make reproduce-all && python3 -m pytest -q
+```
+
+`failed to solve: error getting credentials`
+
+If this appears while pulling a public base image such as `python:3.12-slim`,
+Docker can be reading a broken credential-helper config. Reset the Ubuntu-side
+Docker client config and retry the pull:
+
+```bash
+cd ~
+mkdir -p ~/.docker
+mv ~/.docker/config.json ~/.docker/config.json.bak 2>/dev/null || true
+printf '{}\n' > ~/.docker/config.json
+
+cd ~/developer-support-troubleshooting-lab
+docker pull python:3.12-slim
+make down || true
+make up && make reproduce-all && python3 -m pytest -q
 ```
