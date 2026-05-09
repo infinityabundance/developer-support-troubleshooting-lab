@@ -63,8 +63,10 @@ pytest -q
 ### Windows 11 VM
 
 For a Windows 11 VM, enable nested virtualization in the VM settings first. The
-repo's scripts are bash/Makefile-based, so run the lab inside Ubuntu on WSL2
-with Docker Desktop providing the Docker engine.
+repo's scripts are bash/Makefile-based, so use Ubuntu on WSL2 as the Linux
+shell for `git`, `make`, Python, and the repo scripts. Docker Desktop runs on
+Windows and provides the Docker engine. Do not install Docker Engine, `docker.io`,
+Snap Docker, Podman, or another container runtime inside Ubuntu for this path.
 
 Run this in an Administrator PowerShell:
 
@@ -82,19 +84,28 @@ wsl --update
 Start-Process "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
 ```
 
-Let Ubuntu create its Linux user. Let Docker Desktop finish starting. If Docker
-Desktop prompts for WSL integration, enable it for `Ubuntu-24.04`.
+Let Ubuntu create its Linux user and let Docker Desktop finish starting. In
+Docker Desktop, open **Settings -> Resources -> WSL Integration**, enable
+integration for `Ubuntu-24.04`, and apply/restart. That integration is what
+makes the `docker` command inside Ubuntu talk to Docker Desktop's Windows engine.
 
-Then run this inside Ubuntu:
+Then install only the repo tooling inside Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install -y git make curl ca-certificates python3 python3-venv python3-pip python-is-python3 openssl
+sudo apt install -y git make curl ca-certificates python3 python3.12-venv python3-venv python3-pip openssl
+```
 
+Verify that Ubuntu can reach Docker Desktop through WSL integration:
+
+```bash
 docker version
 docker compose version
 docker run --rm hello-world
 ```
+
+If `docker` is not found, fix Docker Desktop's WSL integration for the Ubuntu
+distro. Do not install Docker inside Ubuntu.
 
 Clone and run the lab from GitHub inside the Linux home directory, not under
 `/mnt/c`:
@@ -107,11 +118,11 @@ cd developer-support-troubleshooting-lab
 rm -rf .venv   # safe recovery if a previous venv creation failed
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r tests/requirements.txt
+python3 -m pip install --upgrade pip
+python3 -m pip install -r tests/requirements.txt
 
 make down || true
-make up && make reproduce-all && python -m pytest -q
+make up && make reproduce-all && python3 -m pytest -q
 ```
 
 If the run fails, capture the Compose state before changing anything:
