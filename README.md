@@ -60,6 +60,66 @@ make up         # several pinning tests need the live stack
 pytest -q
 ```
 
+### Windows 11 VM
+
+For a Windows 11 VM, enable nested virtualization in the VM settings first. The
+repo's scripts are bash/Makefile-based, so run the lab inside Ubuntu on WSL2
+with Docker Desktop providing the Docker engine.
+
+Run this in an Administrator PowerShell:
+
+```powershell
+wsl --install --no-distribution
+winget install -e --id Docker.DockerDesktop --accept-source-agreements --accept-package-agreements
+shutdown /r /t 0
+```
+
+After the reboot, open PowerShell again:
+
+```powershell
+wsl --install -d Ubuntu-24.04
+wsl --update
+Start-Process "$Env:ProgramFiles\Docker\Docker\Docker Desktop.exe"
+```
+
+Let Ubuntu create its Linux user. Let Docker Desktop finish starting. If Docker
+Desktop prompts for WSL integration, enable it for `Ubuntu-24.04`.
+
+Then run this inside Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install -y git make curl ca-certificates python3 python3-venv python3-pip openssl
+
+docker version
+docker compose version
+docker run --rm hello-world
+```
+
+Clone and run the lab from GitHub inside the Linux home directory, not under
+`/mnt/c`:
+
+```bash
+cd ~
+git clone https://github.com/infinityabundance/developer-support-troubleshooting-lab.git
+cd developer-support-troubleshooting-lab
+
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r tests/requirements.txt
+
+make down || true
+make up && make reproduce-all && python -m pytest -q
+```
+
+If the run fails, capture the Compose state before changing anything:
+
+```bash
+docker compose ps
+docker compose logs --tail=200
+```
+
 CI runs the full suite (reproductions + pinning tests) on Python 3.11 / 3.12 / 3.13 with one automatic retry for timing-sensitive cases, plus a nightly schedule trigger to catch upstream image drift.
 
 ## Repository layout
