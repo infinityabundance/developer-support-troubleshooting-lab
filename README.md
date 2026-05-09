@@ -89,7 +89,7 @@ Then run this inside Ubuntu:
 
 ```bash
 sudo apt update
-sudo apt install -y git make curl ca-certificates python3 python3-venv python3-pip openssl
+sudo apt install -y git make curl ca-certificates python3 python3-venv python3-pip python-is-python3 openssl
 
 docker version
 docker compose version
@@ -104,6 +104,7 @@ cd ~
 git clone https://github.com/infinityabundance/developer-support-troubleshooting-lab.git
 cd developer-support-troubleshooting-lab
 
+rm -rf .venv   # safe recovery if a previous venv creation failed
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
