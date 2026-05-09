@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python compile check
+        run: python -m compileall api tests colab
+
+      - name: Shell syntax check
+        run: bash -n bin/trace.sh seed/reset.sh cases/*/reproduce.sh
+
+      - name: Install lint dependency
+        run: python -m pip install --upgrade ruff
+
+      - name: Lint
+        run: ruff check api tests
+
+  docker-reproductions:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements.txt
+
+      - name: Start lab stack
+        run: make up
+
+      - name: Run reproductions
+        run: make reproduce-all || make reproduce-all
+
+      - name: Run pinning tests
+        run: python -m pytest -q --reruns 1 --reruns-delay 1
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail=300
+
+      - name: Tear down
+        if: always()
+        run: make down

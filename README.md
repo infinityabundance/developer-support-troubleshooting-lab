@@ -23,6 +23,20 @@ A representative case, in the voice the rest of the cases are written in:
 
 That is case 04 of seven. The other six diagnostic registers are auth (JWT audience), database (partial migration), container networking (loopback bind), performance (N+1 query), Linux/DNS (Alpine + musl + ndots), and TLS (incomplete certificate chain). The case writeups follow the same five-section postmortem template so the practice of *reading* one carries over to writing the next.
 
+## For hiring reviewers
+
+If you have 90 seconds, review:
+
+1. [`TRIAGE.md`](TRIAGE.md) — my support/debugging method.
+2. [`cases/04-webhook-hmac-reserialization/`](cases/04-webhook-hmac-reserialization/) — API integration debugging example.
+3. [`cases/06-dns-ndots-musl/`](cases/06-dns-ndots-musl/) — Linux/DNS/container troubleshooting example.
+4. [`docs/support-casebook.md`](docs/support-casebook.md) — full casebook.
+5. [`tests/`](tests/) — pinning tests that fail if fixes regress.
+
+This repo is intended to demonstrate practical fitness for Developer Support,
+Platform Support, API Support, Integration Support, Linux Support, and Technical
+Escalation roles.
+
 ## Cases
 
 | # | Case | Layer |
@@ -106,8 +120,10 @@ Practical fitness for: Developer Support Engineer, Platform Support Engineer,
 Linux Support Engineer, API Support Engineer, Integration Support Engineer,
 Technical Escalation Engineer.
 
-What it deliberately does not demonstrate: frontend engineering, ML, or
-greenfield product engineering. Different repo for those.
+What this repo is not: a frontend portfolio, ML model demo, or greenfield SaaS
+product. It is intentionally focused on developer-support troubleshooting,
+API/platform debugging, reproduction discipline, escalation writing, and
+support-facing engineering judgment.
 
 
 ## License
