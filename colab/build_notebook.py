@@ -117,14 +117,21 @@ CELLS = [
     md(
         "## Setup 3 of 4 — Install Python dependencies",
         "",
-        "Two requirements files:",
-        "- `api/requirements.txt`: production deps for the FastAPI service (fastapi, uvicorn, psycopg, pyjwt, sqlalchemy)",
-        "- `tests/requirements.txt`: test-only deps, including httpx and pytest, used by the pinning tests",
+        "Colab already carries packages like Gradio, MCP, and Google ADK in the shared Python environment. Installing the production Docker pins from `api/requirements.txt` here can downgrade FastAPI, Starlette, PyJWT, or Uvicorn below what those preinstalled packages require, which produces noisy dependency-conflict warnings.",
         "",
-        "Both install into Colab's existing Python environment.",
+        "So the notebook installs a Colab-compatible host dependency set instead. The production container still uses `api/requirements.txt`; this cell is only for Colab's shared runtime.",
     ),
     code(
-        "!pip install -q -r api/requirements.txt -r tests/requirements.txt",
+        "!pip install -q \\",
+        "  'fastapi>=0.115.2,<1.0' \\",
+        "  'starlette>=0.40,<1.0' \\",
+        "  'uvicorn[standard]>=0.34,<1.0' \\",
+        "  'pyjwt>=2.10.1,<3' \\",
+        "  'psycopg[binary]>=3.2,<4' \\",
+        "  'sqlalchemy>=2.0,<3' \\",
+        "  'httpx>=0.27,<0.30' \\",
+        "  'pytest>=8.3,<10' \\",
+        "  'pytest-rerunfailures>=15,<16'",
     ),
 
     # ============================================================
