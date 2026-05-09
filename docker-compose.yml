@@ -59,7 +59,7 @@ services:
 
       # HMAC secret for JWT signing/verification (case 01). Hardcoded
       # development value; production injects this from a secrets store.
-      JWT_SECRET: dev-secret-do-not-use-in-prod
+      JWT_SECRET: dev-secret-do-not-use-in-prod-32bytes
 
       # JWT audience the verifier accepts. Single-string here on
       # purpose — case 01 demonstrates the bug shape with this

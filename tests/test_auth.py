@@ -36,7 +36,7 @@ if str(API_DIR) not in sys.path:
 AUD_IN_LIST_A = "audience-pinning-alpha"
 AUD_IN_LIST_B = "audience-pinning-beta"
 AUD_NOT_IN_LIST = "audience-pinning-gamma-not-in-list"
-TEST_SECRET = "test-secret-not-shared-with-prod"
+TEST_SECRET = "test-secret-not-shared-with-prod-32bytes"
 
 
 @pytest.fixture
@@ -95,7 +95,7 @@ def test_audience_not_in_configured_list_is_rejected(client):
 def test_signature_with_wrong_secret_is_rejected(client):
     """Signature check happens; the audience check is not the only gate.
     Mints with a secret the verifier does not hold."""
-    token = _mint(AUD_IN_LIST_A, secret="some-other-secret")
+    token = _mint(AUD_IN_LIST_A, secret="wrong-secret-not-shared-with-prod-32bytes")
     r = client.get("/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 401, r.text
 
