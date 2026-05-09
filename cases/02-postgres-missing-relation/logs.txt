@@ -1,0 +1,2 @@
+api-1  | 2026-05-09T17:59:08.433 ERROR api rid=96c781d597e2 db=undefined_table err=relation "audit_log" does not exist
+api-1  | 2026-05-09T17:59:08.433 INFO api rid=96c781d597e2 method=GET path=/audit status=500 dur_ms=3.6

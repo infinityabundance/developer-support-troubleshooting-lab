@@ -1,0 +1,2 @@
+api-1  | 2026-05-09T17:59:37.550 WARNING api rid=680dac1e3daf webhook=signature_mismatch expected_prefix=v1=c45d8b950a2 got_prefix=v1=c78da84d2ad body_len=32
+api-1  | 2026-05-09T17:59:37.551 INFO api rid=680dac1e3daf method=POST path=/webhook status=401 dur_ms=0.5

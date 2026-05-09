@@ -1,0 +1,137 @@
+# Compose file for the developer-support troubleshooting lab.
+# Three services: db (postgres), api (the deliberately-broken FastAPI
+# service in api/main.py), alpine-resolver (a long-lived musl-libc
+# sidecar used only by case 06's DNS reproduction).
+#
+# Brought up by `make up` (or `docker compose up -d --build`); torn
+# down by `make down` (which adds `-v` to drop the db volume so the
+# next boot starts from a fresh /docker-entrypoint-initdb.d run).
+#
+# Dependency order: db starts first; api waits for db's healthcheck
+# to go green; alpine-resolver waits for api's healthcheck. The
+# healthchecks gate `service_healthy` conditions in `depends_on`.
+services:
+  db:
+    # Pinned to postgres 16-alpine for image-size + version stability.
+    # Alpine here is fine because the db container doesn't run any
+    # application code that hits the musl-vs-glibc DNS quirk that
+    # case 06 demonstrates — that's a sidecar concern.
+    image: postgres:16-alpine
+    environment:
+      # Default credentials and database name. Hardcoded because this
+      # is a lab; production would inject these from a secrets store.
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      # Publish 5432 so the host (and tests/test_schema_check.py via
+      # `docker compose exec`) can reach the db. Production would not
+      # expose the db port to the host network.
+      - "5432:5432"
+    volumes:
+      # 001_init.sql runs once on first boot via the postgres image's
+      # /docker-entrypoint-initdb.d hook. This is what bootstraps the
+      # schema, seeds the customers/orders/schema_migrations tables,
+      # and inserts version 1 into schema_migrations.
+      #
+      # 002_partial.sql is deliberately NOT mounted here — case 02's
+      # whole point is that 002 is missing. It IS mounted into the api
+      # container at /migrations/ for use via /admin/migrate/2.
+      - ./db/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro
+    healthcheck:
+      # pg_isready is the canonical "can the db accept connections"
+      # probe. Used by api's depends_on: condition: service_healthy
+      # so the api never starts trying to connect before the db is
+      # ready (which would fail and crash-loop).
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  api:
+    build:
+      context: ./api  # Builds from api/Dockerfile.
+    environment:
+      # Connection string for psycopg. `db` is the docker-compose
+      # service name, which resolves via Docker's embedded DNS to the
+      # api container's network namespace.
+      DATABASE_URL: postgresql://app:app@db:5432/app
+
+      # HMAC secret for JWT signing/verification (case 01). Hardcoded
+      # development value; production injects this from a secrets store.
+      JWT_SECRET: dev-secret-do-not-use-in-prod
+
+      # JWT audience the verifier accepts. Single-string here on
+      # purpose — case 01 demonstrates the bug shape with this
+      # legacy single-value config. The api code reads JWT_AUDIENCES
+      # (list) first and falls back to JWT_AUDIENCE; with only this
+      # set, the verifier behaves exactly as the pre-fix code did.
+      # tests/test_auth.py monkey-patches JWT_AUDIENCES with a
+      # multi-value list to exercise the post-fix code path.
+      JWT_AUDIENCE: api
+
+      # HMAC secret the webhook signer uses (case 04). Must match the
+      # value the test/reproduction signer uses; mismatched values are
+      # not what case 04 demonstrates.
+      WEBHOOK_SECRET: whsec_devonly
+
+      # uvicorn bind address. Compose interpolates ${BIND_HOST} from
+      # the shell env, defaulting to 0.0.0.0. Case 03's reproduce.sh
+      # sets BIND_HOST=127.0.0.1 in its shell env to flip this to the
+      # broken state, then restores it at the end.
+      BIND_HOST: ${BIND_HOST:-0.0.0.0}
+      BIND_PORT: "8000"
+
+      # The schema version this image expects to be talking to.
+      # /healthz?check=schema returns 503 when the database's
+      # max(schema_migrations.version) is below this. Bumping this
+      # alongside a new migration that the api code depends on, then
+      # rolling out the new image, is the contract that makes the
+      # readiness gate fail-closed on migration drift (case 02 fix).
+      EXPECTED_SCHEMA_VERSION: "2"
+    ports:
+      # 8000 published to host so the reproduce.sh scripts and
+      # pinning tests can hit the api from outside the docker
+      # network. Production would put the api behind a load balancer.
+      - "8000:8000"
+    volumes:
+      # /admin/migrate/{step} reads SQL from /migrations/00{step}.sql
+      # at runtime. The same files are mounted into the db container's
+      # initdb directory for first-boot bootstrap; here they back the
+      # operator-side "apply this migration now" call exercised by
+      # tests/test_schema_check.py and case 02's recovery flow.
+      - ./db/migrations:/migrations:ro
+    depends_on:
+      db:
+        # Don't start the api until the db is accepting connections.
+        # Without this, the api would crash-loop on import-time db
+        # access — no, actually api doesn't open a connection at
+        # import time. But the first /healthz hit would fail until
+        # the db is up, which would race the docker compose up
+        # --wait flow.
+        condition: service_healthy
+    healthcheck:
+      # The bare /healthz path (no ?check=schema). docker-compose's
+      # container healthcheck must succeed even when the db is at a
+      # lower migration version than the api expects (which is case
+      # 02's reproduction state); using ?check=schema here would
+      # break case 02's reproduce.sh. The schema readiness check is
+      # opt-in and lives behind the query param.
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8000/healthz || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  # Used only by case 06 (Alpine + musl + ndots).
+  #
+  # Long-lived `sleep infinity` container so the case can `docker
+  # compose exec alpine-resolver` into a musl-libc environment without
+  # spinning up a fresh container per run. Depends on api's
+  # healthcheck so the case can exec in and immediately resolve `api`
+  # without racing the api's startup.
+  alpine-resolver:
+    image: python:3.12-alpine
+    command: ["sleep", "infinity"]
+    depends_on:
+      api:
+        condition: service_healthy

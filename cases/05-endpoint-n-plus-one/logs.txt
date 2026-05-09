@@ -1,0 +1,12 @@
+# api log
+api-1  | 2026-05-09T17:59:38.618 INFO api rid=35dc1b0eb0ff endpoint=/orders rows=200 queries=201 dur_ms=7.7
+
+# EXPLAIN ANALYZE: per-row customer lookup
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Index Scan using customers_pkey on customers  (cost=0.15..8.17 rows=1 width=32) (actual time=0.005..0.006 rows=1 loops=1)
+   Index Cond: (id = 1)
+ Planning Time: 0.175 ms
+ Execution Time: 0.026 ms
+(4 rows)
+

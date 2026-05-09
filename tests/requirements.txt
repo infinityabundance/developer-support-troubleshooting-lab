@@ -1,0 +1,12 @@
+# Test-only dependencies. The api containers carry their own production
+# requirements (api/requirements.txt, pinned for reproducibility); these
+# are what the host or CI runner needs to import api/main.py and run the
+# pinning tests with TestClient. Loose version specifiers — pin in CI if
+# determinism becomes an issue.
+fastapi>=0.115,<0.117
+pyjwt>=2.9,<3
+psycopg[binary]>=3.2,<4
+sqlalchemy>=2.0,<3
+httpx>=0.27,<0.30
+pytest>=8.3,<10
+pytest-rerunfailures>=15,<16

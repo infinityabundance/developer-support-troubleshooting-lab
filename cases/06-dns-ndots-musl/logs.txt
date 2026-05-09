@@ -1,0 +1,15 @@
+# /etc/resolv.conf
+search dns.podman .
+nameserver 10.89.0.1
+
+# getent hosts api (short)
+10.89.0.8         api.dns.podman  api.dns.podman api
+
+# getent hosts api. (FQDN)
+10.89.0.8         api  api api.
+
+# dig api +short
+10.89.0.8
+
+# dig api. +short
+10.89.0.8

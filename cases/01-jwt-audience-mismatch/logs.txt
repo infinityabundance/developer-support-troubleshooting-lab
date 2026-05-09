@@ -1,0 +1,2 @@
+api-1  | 2026-05-09T17:59:07.278 WARNING api rid=83ce7ea713a3 auth=invalid_audience expected=['api'] err=Audience doesn't match
+api-1  | 2026-05-09T17:59:07.278 INFO api rid=83ce7ea713a3 method=GET path=/me status=401 dur_ms=0.5

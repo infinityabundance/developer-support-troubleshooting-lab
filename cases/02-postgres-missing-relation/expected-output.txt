@@ -1,0 +1,2 @@
+http_code=500
+relation \"audit_log\" does not exist

@@ -1,0 +1,21 @@
+=== BEFORE FIX: server presents leaf only (cert=leaf.pem) ===
+depth=0 CN=localhost
+verify error:num=20:unable to get local issuer certificate
+depth=0 CN=localhost
+verify error:num=21:unable to verify the first certificate
+depth=0 CN=localhost
+Certificate chain
+ 0 s:CN=localhost
+   i:CN=Test Intermediate CA
+Verify return code: 21 (unable to verify the first certificate)
+
+=== AFTER FIX: server presents full chain (cert=fullchain.pem) ===
+depth=2 CN=Test Root CA
+depth=1 CN=Test Intermediate CA
+depth=0 CN=localhost
+Certificate chain
+ 0 s:CN=localhost
+   i:CN=Test Intermediate CA
+ 1 s:CN=Test Intermediate CA
+   i:CN=Test Root CA
+Verify return code: 0 (ok)
