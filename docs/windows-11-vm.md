@@ -149,6 +149,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 python3 -m pip install --upgrade pip
 python3 -m pip install -r tests/requirements.txt
+python3 -m pytest --version
 ```
 
 Run Docker and Make commands as the normal Ubuntu user, not with `sudo`. If
@@ -171,6 +172,7 @@ Confirm that `groups` includes `docker`, then run the lab:
 ```bash
 groups
 
+source .venv/bin/activate
 make down || true
 make up && make reproduce-all && python3 -m pytest -q
 ```
@@ -194,6 +196,66 @@ sudo apt install -y python3.12-venv python3-venv python3-pip
 rm -rf .venv
 python3 -m venv .venv
 ```
+
+`.venv/bin/activate: No such file or directory`
+
+The virtual environment does not exist, usually because the earlier venv
+creation failed. Install the venv/pip packages, recreate `.venv`, and reinstall
+the test dependencies:
+
+```bash
+cd ~/developer-support-troubleshooting-lab
+
+sudo apt update
+sudo apt install -y python3.12-venv python3-venv python3-pip
+
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+python3 -m pip install --upgrade pip
+python3 -m pip install -r tests/requirements.txt
+```
+
+`/usr/bin/python3: No module named pip`
+
+The system Python does not have pip installed, or the venv was not created
+successfully. Install the Ubuntu pip/venv packages and recreate the venv:
+
+```bash
+cd ~/developer-support-troubleshooting-lab
+
+sudo apt update
+sudo apt install -y python3.12-venv python3-venv python3-pip
+
+rm -rf .venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+python3 -m pip install --upgrade pip
+python3 -m pip install -r tests/requirements.txt
+```
+
+Do not use `sudo apt get pip`; `apt` does not have a `get` operation. Use
+`sudo apt install ...`.
+
+`/usr/bin/python3: No module named pytest`
+
+The Docker reproductions already ran; this means the active Python environment
+does not have the test dependencies installed. Activate the venv, install the
+requirements, then run pytest:
+
+```bash
+cd ~/developer-support-troubleshooting-lab
+
+source .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r tests/requirements.txt
+python3 -m pytest -q
+```
+
+If `source .venv/bin/activate` fails, use the `.venv/bin/activate` recovery
+steps above first.
 
 `make: command not found`
 
