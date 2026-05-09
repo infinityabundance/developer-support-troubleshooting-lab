@@ -22,19 +22,24 @@ If a future change disables the schema check, drops EXPECTED_SCHEMA_VERSION
 handling, or removes the registry update from /admin/migrate, these tests
 fail before customer traffic would expose it.
 
-Requires the docker-compose stack to be up — exercises the real psycopg
-path including the new SQL.
+Requires the api to be reachable on localhost:8000 and the database to
+be reachable through DATABASE_URL. Local docker-compose publishes the db
+on 127.0.0.1:5432; the Colab notebook runs Postgres natively on
+localhost:5432. Both paths exercise the real psycopg SQL path.
 """
 from __future__ import annotations
 
+import os
 import socket
 
 import httpx
+import psycopg
 import pytest
 
 API_HOST = "127.0.0.1"
 API_PORT = 8000
 BASE = f"http://{API_HOST}:{API_PORT}"
+DEFAULT_DATABASE_URL = "postgresql://app:app@127.0.0.1:5432/app"
 
 
 def _stack_is_up(host: str = API_HOST, port: int = API_PORT, timeout: float = 0.5) -> bool:
@@ -57,16 +62,14 @@ def fresh_baseline():
     has only version 1. Achieved by hitting the lab's reset.sh equivalent
     inline — DELETE FROM schema_migrations WHERE version > 1, plus DROP
     audit_log so the next test can independently re-apply 002."""
-    # Use the api's admin endpoint indirectly via psql isn't available
-    # from the host, but the db port is published. Use the api's own
-    # /admin/migrate path with version 1 (idempotent re-apply); then
-    # delete higher versions via a one-off psql run.
-    import subprocess
-    subprocess.run(
-        ["docker", "compose", "exec", "-T", "db", "psql", "-U", "app", "-d", "app",
-         "-c", "DELETE FROM schema_migrations WHERE version > 1; DROP TABLE IF EXISTS audit_log CASCADE;"],
-        check=True, capture_output=True,
-    )
+    # Use psycopg directly instead of `docker compose exec db psql`.
+    # That keeps the same contract under both local docker-compose
+    # (db port published to 127.0.0.1:5432) and Colab (native Postgres,
+    # no Docker binary available).
+    database_url = os.environ.get("DATABASE_URL", DEFAULT_DATABASE_URL)
+    with psycopg.connect(database_url) as conn, conn.cursor() as cur:
+        cur.execute("DELETE FROM schema_migrations WHERE version > 1")
+        cur.execute("DROP TABLE IF EXISTS audit_log CASCADE")
     yield
 
 
